@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { SAMPLE_GROUPS } from '@/lib/chamacore';
 
 const createGroupSchema = z.object({
-  name: z.string().min(2, 'Group name is required.'),
+  name: z.string().trim().min(2, 'Group name is required.'),
   description: z.string().optional().default(''),
   location: z.string().optional().default('Kenya'),
   role: z.enum(['member', 'group_admin', 'treasurer', 'chairperson', 'auditor', 'platform_admin']).optional().default('group_admin'),
@@ -27,30 +27,42 @@ export async function createChamaGroup(formData: FormData) {
   });
 
   const supabase = createServerSupabaseClient();
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
 
-  if (userError || !userData.user) {
+  if (userError || !user) {
     return { ok: false, message: 'You must be signed in to create a group.' };
   }
 
-  const { error } = await supabase.from('groups').insert({
-    name: payload.name,
-    description: payload.description,
-    created_by: userData.user.id,
-    status: payload.status,
-    location: payload.location
-  }).select();
+  const { data: groupRows, error: createGroupError } = await supabase
+    .from('groups')
+    .insert({
+      name: payload.name,
+      description: payload.description,
+      created_by: user.id,
+      location: payload.location,
+      status: payload.status
+    })
+    .select();
 
-  if (error) {
-    return { ok: false, message: error.message };
+  if (createGroupError || !groupRows || groupRows.length === 0) {
+    return { ok: false, message: createGroupError?.message || 'Unable to create the group.' };
   }
 
-  await supabase.from('group_members').insert({
-    group_id: (await supabase.from('groups').select('id').eq('name', payload.name).order('created_at', { ascending: false }).limit(1).single()).data?.id,
-    user_id: userData.user.id,
+  const groupId = groupRows[0].id;
+
+  const { error: membershipError } = await supabase.from('group_members').insert({
+    group_id: groupId,
+    user_id: user.id,
     role: payload.role,
     status: 'active'
   });
+
+  if (membershipError) {
+    return { ok: false, message: membershipError.message };
+  }
 
   revalidatePath('/groups');
   return { ok: true, message: 'Group created successfully.' };
@@ -62,16 +74,19 @@ export async function getGroupsForUser() {
   }
 
   const supabase = createServerSupabaseClient();
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
 
-  if (userError || !userData.user) {
+  if (userError || !user) {
     return SAMPLE_GROUPS;
   }
 
   const { data, error } = await supabase
     .from('group_members')
-    .select('role, status, groups(id, name, description, location, status)')
-    .eq('user_id', userData.user.id)
+    .select('role, status, groups(*)')
+    .eq('user_id', user.id)
     .eq('status', 'active');
 
   if (error || !data) {
@@ -79,14 +94,14 @@ export async function getGroupsForUser() {
   }
 
   return data.map((row: any) => ({
-    id: row.groups.id,
-    name: row.groups.name,
-    description: row.groups.description,
-    status: row.groups.status,
+    id: row.groups?.id,
+    name: row.groups?.name,
+    description: row.groups?.description,
+    status: row.groups?.status,
     members: 1,
     role: row.role,
     contributionProgress: 0,
     balance: 'KSh 0',
-    location: row.groups.location || 'Kenya'
+    location: row.groups?.location || 'Kenya'
   }));
 }
