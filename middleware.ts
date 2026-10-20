@@ -1,18 +1,21 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { updateSession } from '@/lib/supabase/middleware';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function middleware(request: NextRequest) {
-  const response = await updateSession(request);
+  const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/groups') || pathname.startsWith('/settings');
+  const protectedPaths = ['/dashboard', '/groups', '/settings'];
+  const path = request.nextUrl.pathname;
+  const isProtected = protectedPaths.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 
-  if (isProtectedRoute && !request.cookies.get('sb-access-token')) {
+  if (isProtected && !user) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
