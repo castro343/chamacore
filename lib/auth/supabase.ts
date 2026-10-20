@@ -2,16 +2,34 @@ import { createClient } from '@supabase/supabase-js';
 
 export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
+);
+
+export const isSupabaseConfigured = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  return { data, error };
+  if (!isSupabaseConfigured) {
+    return { data: null, error: new Error('Supabase is not configured.') };
+  }
+
+  return supabase.auth.signInWithPassword({ email, password });
 }
 
 export async function signUp(email: string, password: string, fullName: string) {
-  const { data, error } = await supabase.auth.signUp({
+  if (!isSupabaseConfigured) {
+    return { data: null, error: new Error('Supabase is not configured.') };
+  }
+
+  return supabase.auth.signUp({
     email,
     password,
     options: {
@@ -20,9 +38,21 @@ export async function signUp(email: string, password: string, fullName: string) 
       }
     }
   });
-  return { data, error };
 }
 
 export async function signOut() {
+  if (!isSupabaseConfigured) {
+    return { error: new Error('Supabase is not configured.') };
+  }
+
   return supabase.auth.signOut();
+}
+
+export async function getCurrentUser() {
+  if (!isSupabaseConfigured) {
+    return { user: null, error: new Error('Supabase is not configured.') };
+  }
+
+  const { data, error } = await supabase.auth.getUser();
+  return { user: data.user, error };
 }

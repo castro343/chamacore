@@ -3,26 +3,42 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { clearSessionCookie, setSessionCookie } from '@/lib/auth/session';
+import { setSessionCookie } from '@/lib/auth/session';
+import { signIn, signUp } from '@/lib/auth/supabase';
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const router = useRouter();
   const isLogin = mode === 'login';
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
+    setErrorMessage('');
 
     const email = (event.currentTarget.elements.namedItem('email') as HTMLInputElement)?.value || '';
+    const password = (event.currentTarget.elements.namedItem('password') as HTMLInputElement)?.value || '';
     const fullName = (event.currentTarget.elements.namedItem('fullName') as HTMLInputElement)?.value || 'ChamaCore Member';
 
-    setSessionCookie({ email, fullName });
+    try {
+      const result = isLogin
+        ? await signIn(email, password)
+        : await signUp(email, password, fullName);
 
-    setTimeout(() => {
-      setLoading(false);
+      if (result.error) {
+        setErrorMessage(result.error.message || 'Authentication failed.');
+        setLoading(false);
+        return;
+      }
+
+      setSessionCookie({ email, fullName });
       router.push('/dashboard');
-    }, 250);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Authentication failed.';
+      setErrorMessage(message);
+      setLoading(false);
+    }
   };
 
   return (
@@ -85,6 +101,12 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             </select>
           </div>
         )}
+
+        {errorMessage ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
 
         <button type="submit" className="w-full rounded-2xl bg-chama-forest px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70" disabled={loading}>
           {loading ? 'Please wait...' : isLogin ? 'Sign in' : 'Create account'}

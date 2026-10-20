@@ -8,9 +8,10 @@ export async function middleware(request: NextRequest) {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 
-  const sessionCookie = request.cookies.get('chamacore-session');
+  const hasSupabaseSession = Boolean(request.cookies.get('sb-access-token'));
+  const hasLocalSession = Boolean(request.cookies.get('chamacore-session'));
 
-  if (isProtected && !sessionCookie) {
+  if (isProtected && !hasSupabaseSession && !hasLocalSession) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

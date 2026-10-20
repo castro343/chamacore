@@ -1,9 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { clearSessionCookie } from '@/lib/auth/session';
+import { signOut } from '@/lib/auth/supabase';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut();
+    clearSessionCookie();
+    router.push('/login');
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6">
       <div className="mx-auto flex max-w-7xl gap-6">
@@ -54,10 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
               <button
                 type="button"
-                onClick={() => {
-                  clearSessionCookie();
-                  window.location.href = '/login';
-                }}
+                onClick={handleSignOut}
                 className="rounded-full bg-chama-forest px-4 py-2 text-sm font-semibold text-white"
               >
                 Sign out
