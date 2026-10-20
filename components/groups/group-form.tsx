@@ -1,38 +1,37 @@
 'use client';
 
-import { useState } from 'react';
-import { DEFAULT_GROUP_TEMPLATE, CHAMA_ROLES } from '@/lib/chamacore';
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { createChamaGroup } from '@/app/actions/chama';
+import { CHAMA_ROLES } from '@/lib/chamacore';
 
 export function GroupForm() {
-  const [form, setForm] = useState(DEFAULT_GROUP_TEMPLATE);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    location: 'Nairobi, Kenya',
+    role: 'group_admin',
+    status: 'active'
+  });
 
-  const handleChange = (field: keyof typeof form, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const handleChange = (name: string, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (typeof window !== 'undefined') {
-      const existing = JSON.parse(localStorage.getItem('chamacore-groups') || '[]');
-      const next = [
-        {
-          id: `group-${Date.now()}`,
-          name: form.name || 'New Chama Group',
-          description: form.description || 'Group created from ChamaCore',
-          status: form.status,
-          role: form.role,
-          members: 1,
-          contributionProgress: 0,
-          balance: 'KSh 0',
-          location: form.location
-        },
-        ...existing
-      ];
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, value]) => formData.append(key, String(value)));
 
-      localStorage.setItem('chamacore-groups', JSON.stringify(next));
-      window.location.href = '/groups';
-    }
+    startTransition(async () => {
+      const result = await createChamaGroup(formData);
+      if (result.ok) {
+        router.push('/groups');
+      }
+    });
   };
 
   return (
@@ -78,9 +77,7 @@ export function GroupForm() {
             className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
           >
             {CHAMA_ROLES.map((role) => (
-              <option key={role.value} value={role.value}>
-                {role.label}
-              </option>
+              <option key={role.value} value={role.value}>{role.label}</option>
             ))}
           </select>
         </div>
@@ -99,8 +96,8 @@ export function GroupForm() {
         </select>
       </div>
 
-      <button type="submit" className="w-full rounded-2xl bg-chama-forest px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700">
-        Create group
+      <button type="submit" disabled={isPending} className="w-full rounded-2xl bg-chama-forest px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70">
+        {isPending ? 'Creating group...' : 'Create group'}
       </button>
     </form>
   );

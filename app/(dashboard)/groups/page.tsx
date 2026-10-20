@@ -1,16 +1,9 @@
 import Link from 'next/link';
+import { getGroupsForUser } from '@/app/actions/chama';
 import { SAMPLE_GROUPS } from '@/lib/chamacore';
 
-export default function GroupsPage() {
-  const groups = typeof window === 'undefined'
-    ? SAMPLE_GROUPS
-    : (() => {
-        try {
-          return JSON.parse(localStorage.getItem('chamacore-groups') || 'null') || SAMPLE_GROUPS;
-        } catch {
-          return SAMPLE_GROUPS;
-        }
-      })();
+export default async function GroupsPage() {
+  const groups = await getGroupsForUser().catch(() => SAMPLE_GROUPS);
 
   return (
     <main className="space-y-6">
