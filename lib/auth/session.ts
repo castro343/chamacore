@@ -1,31 +1,35 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-export async function signInWithEmail(email: string, password: string) {
-  const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    return { ok: false, message: error.message };
+export function setSessionCookie(user: { fullName?: string; email: string }) {
+  if (typeof document === 'undefined') {
+    return;
   }
 
-  return { ok: true, user: data.user };
-}
-
-export async function signUpWithEmail(email: string, password: string, fullName: string) {
-  const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName
-      }
-    }
+  const payload = JSON.stringify({
+    fullName: user.fullName || 'ChamaCore Member',
+    email: user.email
   });
 
-  if (error) {
-    return { ok: false, message: error.message };
+  document.cookie = `chamacore-session=${encodeURIComponent(payload)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  localStorage.setItem('chamacore-user', payload);
+}
+
+export function clearSessionCookie() {
+  if (typeof document === 'undefined') {
+    return;
   }
 
-  return { ok: true, user: data.user };
+  document.cookie = 'chamacore-session=; path=/; max-age=0; SameSite=Lax';
+  localStorage.removeItem('chamacore-user');
+}
+
+export function getStoredUser() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = localStorage.getItem('chamacore-user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }

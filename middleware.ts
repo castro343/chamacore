@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function middleware(request: NextRequest) {
-  const supabase = createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const { pathname } = request.nextUrl;
   const protectedPaths = ['/dashboard', '/groups', '/settings'];
-  const path = request.nextUrl.pathname;
-  const isProtected = protectedPaths.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  const isProtected = protectedPaths.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
 
-  if (isProtected && !user) {
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+  const sessionCookie = request.cookies.get('chamacore-session');
+
+  if (isProtected && !sessionCookie) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();

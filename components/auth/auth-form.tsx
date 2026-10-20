@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { clearSessionCookie, setSessionCookie } from '@/lib/auth/session';
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const router = useRouter();
@@ -13,21 +14,15 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
     event.preventDefault();
     setLoading(true);
 
-    const payload = {
-      mode,
-      email: (event.currentTarget.elements.namedItem('email') as HTMLInputElement)?.value,
-      fullName: (event.currentTarget.elements.namedItem('fullName') as HTMLInputElement)?.value,
-      country: (event.currentTarget.elements.namedItem('country') as HTMLSelectElement)?.value
-    };
+    const email = (event.currentTarget.elements.namedItem('email') as HTMLInputElement)?.value || '';
+    const fullName = (event.currentTarget.elements.namedItem('fullName') as HTMLInputElement)?.value || 'ChamaCore Member';
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('chamacore-user', JSON.stringify(payload));
-    }
+    setSessionCookie({ email, fullName });
 
     setTimeout(() => {
       setLoading(false);
       router.push('/dashboard');
-    }, 300);
+    }, 250);
   };
 
   return (
