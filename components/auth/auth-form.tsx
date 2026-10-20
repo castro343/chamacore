@@ -1,7 +1,34 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
+  const router = useRouter();
   const isLogin = mode === 'login';
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+
+    const payload = {
+      mode,
+      email: (event.currentTarget.elements.namedItem('email') as HTMLInputElement)?.value,
+      fullName: (event.currentTarget.elements.namedItem('fullName') as HTMLInputElement)?.value,
+      country: (event.currentTarget.elements.namedItem('country') as HTMLSelectElement)?.value
+    };
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('chamacore-user', JSON.stringify(payload));
+    }
+
+    setTimeout(() => {
+      setLoading(false);
+      router.push('/dashboard');
+    }, 300);
+  };
 
   return (
     <div className="w-full">
@@ -15,37 +42,57 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         </p>
       </div>
 
-      <form className="space-y-5">
+      <form className="space-y-5" onSubmit={handleSubmit}>
         {!isLogin && (
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Full name</label>
-            <input className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white" placeholder="Your full name" />
+            <input
+              name="fullName"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
+              placeholder="Your full name"
+            />
           </div>
         )}
 
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">Email address</label>
-          <input className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white" placeholder="name@example.com" type="email" />
+          <input
+            name="email"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
+            placeholder="name@example.com"
+            type="email"
+            required
+          />
         </div>
 
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
-          <input className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white" placeholder="••••••••" type="password" />
+          <input
+            name="password"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
+            placeholder="••••••••"
+            type="password"
+            required
+          />
         </div>
 
         {!isLogin && (
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Country</label>
-            <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white">
-              <option>Kenya</option>
-              <option>Uganda</option>
-              <option>Tanzania</option>
+            <select
+              name="country"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
+              defaultValue="Kenya"
+            >
+              <option value="Kenya">Kenya</option>
+              <option value="Uganda">Uganda</option>
+              <option value="Tanzania">Tanzania</option>
             </select>
           </div>
         )}
 
-        <button type="submit" className="w-full rounded-2xl bg-chama-forest px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700">
-          {isLogin ? 'Sign in' : 'Create account'}
+        <button type="submit" className="w-full rounded-2xl bg-chama-forest px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70" disabled={loading}>
+          {loading ? 'Please wait...' : isLogin ? 'Sign in' : 'Create account'}
         </button>
       </form>
 

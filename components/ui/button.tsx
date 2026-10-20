@@ -20,3 +20,11 @@ export function Button({
     </button>
   );
 }
+
+export function NavLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className="text-sm font-medium text-slate-600 transition hover:text-chama-forest">
+      {label}
+    </Link>
+  );
+}
