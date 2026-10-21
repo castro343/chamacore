@@ -1,9 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { clearSessionCookie } from '@/lib/auth/session';
 import { signOut } from '@/lib/auth/supabase';
+
+const navigation: Array<{ href: Route; label: string }> = [
+  { href: '/dashboard', label: 'Overview' },
+  { href: '/groups', label: 'Groups' },
+  { href: '/dashboard/finance', label: 'Payments' },
+  { href: '/settings', label: 'Settings' }
+];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -29,12 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <nav className="mt-6 space-y-2">
-            {[
-              { href: '/dashboard', label: 'Overview' },
-              { href: '/groups', label: 'Groups' },
-              { href: '/dashboard/finance', label: 'Payments' },
-              { href: '/settings', label: 'Settings' }
-            ].map((item) => (
+            {navigation.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
